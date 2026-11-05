@@ -1,3 +1,7 @@
-from django.contrib import admin
+"""
+Registro de modelos en el admin de Django para la app `api`.
 
-# Register your models here.
+Esta app no tiene modelos, por lo que no hay nada que registrar.
+"""
+
+from django.contrib import admin

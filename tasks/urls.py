@@ -1,3 +1,9 @@
+"""
+Rutas de la app `tasks`.
+
+Mapea las 4 operaciones CRUD de tareas bajo el prefijo `tareas/`.
+"""
+
 from django.urls import path
 from .views import CrearTareaView, ListarTareasView, ActualizarTareaView, EliminarTareaView
 

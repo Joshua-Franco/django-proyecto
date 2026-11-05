@@ -1,20 +1,26 @@
+"""
+Vistas de la app `accounts`.
+
+CRUD de cuentas mediante APIViews de DRF (una vista por operación).
+`CrearCuentaView`, `ListarCuentasView` y `ObtenerCuentaView` son públicas.
+`ActualizarCuentaView` y `EliminarCuentaView` requieren token JWT (simplejwt).
+`EliminarCuentaView` hace borrado lógico (solo pone `activo=False`).
+Solo se listan/consultan/actualizan cuentas activas (`activo=True`).
+`IniciarSesionView` es el endpoint de login JWT.
+"""
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Cuenta
 from .serializers import CuentaSerializer
 
 
-class CuentaListCreateView(APIView):
-    """GET: listar todas las cuentas. POST: crear una cuenta."""
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def get(self, request):
-        cuentas = Cuenta.objects.all()                        # SELECT *
-        serializer = CuentaSerializer(cuentas, many=True)
-        return Response(serializer.data)
+class CrearCuentaView(APIView):
+    """POST: crear una cuenta."""
 
     def post(self, request):
         serializer = CuentaSerializer(data=request.data)
@@ -24,20 +30,32 @@ class CuentaListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CuentaDetailView(APIView):
-    """GET: ver una cuenta. PUT/PATCH: actualizar. DELETE: eliminar."""
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+class ListarCuentasView(APIView):
+    """GET: listar todas las cuentas activas."""
 
-    def get_object(self, pk):
-        return get_object_or_404(Cuenta, pk=pk)               # SELECT ... WHERE id = pk
+    def get(self, request):
+        cuentas = Cuenta.objects.filter(activo=True)          # SELECT * WHERE activo = True
+        serializer = CuentaSerializer(cuentas, many=True)
+        return Response(serializer.data)
+
+
+class ObtenerCuentaView(APIView):
+    """GET: obtener una cuenta activa por su id."""
 
     def get(self, request, pk):
-        cuenta = self.get_object(pk)
+        cuenta = get_object_or_404(Cuenta, pk=pk, activo=True)  # SELECT ... WHERE id = pk AND activo = True
         serializer = CuentaSerializer(cuenta)
         return Response(serializer.data)
 
+
+class ActualizarCuentaView(APIView):
+    """PUT: reemplazo completo. PATCH: actualización parcial."""
+
+    # Requiere token JWT válido (simplejwt).
+    permission_classes = [permissions.IsAuthenticated]
+
     def put(self, request, pk):
-        cuenta = self.get_object(pk)
+        cuenta = get_object_or_404(Cuenta, pk=pk, activo=True)
         serializer = CuentaSerializer(cuenta, data=request.data)
         if serializer.is_valid():
             serializer.save()                                 # UPDATE
@@ -45,14 +63,28 @@ class CuentaDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
-        cuenta = self.get_object(pk)
+        cuenta = get_object_or_404(Cuenta, pk=pk, activo=True)
         serializer = CuentaSerializer(cuenta, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()                                 # UPDATE parcial
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class EliminarCuentaView(APIView):
+    """DELETE: desactivar una cuenta (borrado lógico, no elimina de la BD)."""
+
+    # Requiere token JWT válido (simplejwt).
+    permission_classes = [permissions.IsAuthenticated]
+
     def delete(self, request, pk):
-        cuenta = self.get_object(pk)
-        cuenta.delete()                                       # DELETE
+        cuenta = get_object_or_404(Cuenta, pk=pk, activo=True)
+        cuenta.activo = False                                 # Borrado lógico
+        cuenta.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class IniciarSesionView(TokenObtainPairView):
+    """POST: iniciar sesión y obtener tokens JWT (access + refresh)."""
+
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]

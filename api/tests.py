@@ -1,3 +1,9 @@
+"""
+Tests de la app `api`.
+
+Nota: aún no hay tests escritos para esta app.
+"""
+
 from django.test import TestCase
 
-# Create your tests here.
+# Escribir aquí los tests del endpoint health-check.

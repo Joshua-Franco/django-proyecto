@@ -1,3 +1,7 @@
-from django.db import models
+"""
+Modelos de la app `api`.
 
-# Create your models here.
+Esta app no define modelos; es solo un endpoint de salud/landing.
+"""
+
+from django.db import models

@@ -1,11 +1,18 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""
+Utilidad de línea de comandos de Django.
+
+Punto de entrada para ejecutar comandos de gestión:
+`python manage.py <comando>` (runserver, migrate, createsuperuser, etc.).
+"""
+
 import os
 import sys
 
 
 def main():
-    """Run administrative tasks."""
+    """Ejecuta un comando de gestión de Django."""
+    # Selecciona el módulo de configuración del proyecto.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
         from django.core.management import execute_from_command_line

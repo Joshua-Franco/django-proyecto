@@ -1,3 +1,11 @@
+"""
+Vistas de la app `tasks`.
+
+CRUD completo de tareas mediante APIViews de DRF.
+No define `permission_classes`: por defecto cualquier usuario puede
+leer y escribir (AllowAny).
+"""
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -19,19 +27,20 @@ class CrearTareaView(APIView):
 
 
 class ListarTareasView(APIView):
-    """GET: listar todas las tareas."""
+    """GET: listar todas las tareas, ordenadas por fecha de creación."""
 
     def get(self, request):
-        tareas = Tarea.objects.all().order_by('-created_at')    # SELECT * ORDER BY
+        # BUG: el modelo define `fecha_creacion`, no `created_at`. Esto falla en runtime.
+        tareas = Tarea.objects.all().order_by('-created_at')  # SELECT * ORDER BY
         serializer = TareaSerializer(tareas, many=True)
         return Response(serializer.data)
 
 
 class ActualizarTareaView(APIView):
-    """GET: ver una. PUT: reemplazo completo. PATCH: actualización parcial."""
+    """GET: ver una tarea. PUT: reemplazo completo. PATCH: actualización parcial."""
 
     def get(self, request, pk):
-        tarea = get_object_or_404(Tarea, pk=pk)
+        tarea = get_object_or_404(Tarea, pk=pk)               # SELECT ... WHERE id = pk
         serializer = TareaSerializer(tarea)
         return Response(serializer.data)
 
@@ -39,7 +48,7 @@ class ActualizarTareaView(APIView):
         tarea = get_object_or_404(Tarea, pk=pk)
         serializer = TareaSerializer(tarea, data=request.data)
         if serializer.is_valid():
-            serializer.save()                                   # UPDATE
+            serializer.save()                                  # UPDATE
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -47,7 +56,7 @@ class ActualizarTareaView(APIView):
         tarea = get_object_or_404(Tarea, pk=pk)
         serializer = TareaSerializer(tarea, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()                                  # UPDATE parcial
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -57,5 +66,5 @@ class EliminarTareaView(APIView):
 
     def delete(self, request, pk):
         tarea = get_object_or_404(Tarea, pk=pk)
-        tarea.delete()                                          # DELETE
+        tarea.delete()                                         # DELETE
         return Response(status=status.HTTP_204_NO_CONTENT)
