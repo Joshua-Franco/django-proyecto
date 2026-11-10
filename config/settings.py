@@ -10,6 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 from os import getenv
 from dotenv import load_dotenv
+import dj_database_url
 
 # Ruta raíz del proyecto (carpeta que contiene manage.py).
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,14 +82,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Base de datos PostgreSQL. Las credenciales se leen del archivo `.env`
 # mediante variables de entorno (HOST, NAME, USER, PASSWORD, PORT).
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": getenv("HOST"),
-        "NAME": getenv("NAME"),
-        "USER": getenv("USER"),
-        "PASSWORD": getenv("PASSWORD"),
-        "PORT": getenv("PORT"),
-    }
+    "default": dj_database_url.parse(
+        getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # Validadores de fortaleza de contraseña para el auth de Django.
