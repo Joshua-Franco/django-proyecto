@@ -1,0 +1,49 @@
+# docker-compose.yml del proyecto django-proyecto.
+# Levanta la app Django + un PostgreSQL propio en la red interna de Docker.
+# Uso: docker compose up --build   (el build primero crea la imagen)
+# Credenciales: se leen del .env (nada hardcodeado). Con docker compose
+# v2 solo se necesita *_var = valor* sin espacios alrededor del "=".
+
+services:
+  # PostgreSQL propio del compose (no toca tu PG instalado en Windows).
+  db:
+    image: postgres:18-alpine
+    environment:
+      # Nombres de la imagen oficial de postgres (no los de settings.py).
+      POSTGRES_DB: ${NAME:-database}
+      POSTGRES_USER: postgres            # literal: ${USER} puede chocar con el nombre de tu usuario de Windows
+      POSTGRES_PASSWORD: ${PASSWORD:?PASSWORD es requerido en .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${NAME:-database}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5433:5432"                      # opcional, para inspeccionar la BD desde psql fuera de compose
+
+  # App Django: build del Dockerfile en la raíz.
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy       # espera a que la BD esté lista
+    ports:
+      - "8000:8000"
+    environment:
+      # Postgres interno del compose.
+      HOST: db                           # nombre del servicio (no localhost: dentro del contenedor "localhost" es él mismo)
+      PORT: "5432"
+      NAME: ${NAME:-database}
+      USER: postgres                     # literal, mismo motivo que POSTGRES_USER
+      PASSWORD: ${PASSWORD:?PASSWORD es requerido en .env}
+      # Media: SOLO bucket AWS S3 (django-storages). Credenciales SIEMPRE
+      # desde .env, jamás escritas aquí. :? exige que estén definidas.
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID es requerido en .env}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY es requerido en .env}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-django-proyecto}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-us-east-2}
+
+volumes:
+  db_data:

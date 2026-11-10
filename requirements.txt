@@ -1,0 +1,7 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+django-storages[s3]
+python-dotenv
+psycopg[binary]
+Pillow
