@@ -97,11 +97,6 @@ CREATE DATABASE database;
 python manage.py migrate
 ```
 
-> Histórico: `videos/0002` y `videos/0003` eran migraciones de datos
-> cuando el media vivía en `assets/` (carpeta eliminada). En una BD nueva
-> no crean registros (la carpeta no existe); los registros se crean ahora
-> con los endpoints de subida. No edites migraciones ya aplicadas.
-
 ## Media: el server solo obtiene y sube a AWS S3
 
 - **Nada de disco:** no hay `/media/` local ni carpeta de media en el
@@ -140,6 +135,7 @@ python manage.py migrate
      }]
    }
    ```
+
 3. **Seed opcional** de los archivos históricos con AWS CLI:
 
    ```bash
@@ -148,6 +144,7 @@ python manage.py migrate
    aws s3 cp --recursive --content-type "video/mp4" \
        ./mi-carpeta-videos / s3://django-proyecto/videos/
    ```
+
 4. Poner la clave rotada en `.env` y arrancar (`runserver` o Docker).
 
 ## Subir media con Django
@@ -261,34 +258,6 @@ de DRF: *AllowAny*). Para las rutas protegidas añade el header:
 ```
 Authorization: Bearer <access_token>
 ```
-
-## Tests
-
-Suite con **pytest** + **pytest-django** (15 tests):
-
-```bash
-pytest                              # todo el suite
-pytest images/tests.py              # solo una app
-pytest --create-db                  # regenerar la BD de tests
-```
-
-Como el backend es S3-only, los tests NO tocan AWS:
-
-- **Lecturas**: la construcción de URLs del bucket es local (sin red).
-- **Subidas**: `override_settings(STORAGES=...)` cambia el storage de
-  S3 a `InMemoryStorage` para probar el flujo completo del POST sin
-  subir nada real (modelo, validaciones, 201/400, storage posterior).
-
-| Archivo | Qué cubre |
-|---|---|
-| `images/tests.py` | Lista y detalle con URLs del bucket, 404, subida de imagen (título auto y explícito), rechazo de contenido no-imagen (400) |
-| `videos/tests.py` | Idem + rechazo de extensión no admitida (400) |
-| `config/tests.py` | Rutas principales, 404 en `/media/` (no hay serving local) |
-| `health/tests.py` | GET `/` devuelve `{"servidor": "okay"}` |
-
-Fixtures de `conftest.py` (sin imports): `api_client`, `sample_imagen`,
-`sample_video`. Con `--reuse-db` (en `pytest.ini`) la corrida repetida
-rápida.
 
 ## Notas de producción
 
