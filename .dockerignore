@@ -1,6 +1,5 @@
 # Archivos que NO entran en la imagen de Docker.
 # .env queda fuera por seguridad: las credenciales se pasan en runtime
-# vía docker compose (services.web.environment).
 venv/
 .git/
 .gitignore
@@ -10,5 +9,4 @@ __pycache__/
 .env
 *.sqlite3
 Dockerfile
-docker-compose.yml
 README.md
