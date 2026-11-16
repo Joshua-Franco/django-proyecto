@@ -1,0 +1,7 @@
+venv\Scripts\activate.bat
+
+python manage.py runserver
+
+docker build -t django-proyecto .
+
+docker run -d -p 8000:8000 --name django-proyecto-container --env-file .env django-proyecto

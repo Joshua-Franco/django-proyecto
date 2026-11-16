@@ -81,9 +81,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Base de datos PostgreSQL. Las credenciales se leen del archivo `.env`
 # mediante variables de entorno (HOST, NAME, USER, PASSWORD, PORT).
+# Se quitan las comillas que puedan venir en el .env (python-dotenv a veces
+# las incluye y dj_database_url no las espera).
+_DATABASE_URL = getenv("DATABASE_URL", "").strip('"').strip("'")
+
 DATABASES = {
     "default": dj_database_url.parse(
-        getenv("DATABASE_URL"),
+        _DATABASE_URL,
         conn_max_age=600,
         ssl_require=True
     )

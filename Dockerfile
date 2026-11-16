@@ -14,6 +14,9 @@ RUN apt-get update \
 
 WORKDIR /app
 
+# Copia el .env para que load_dotenv() en settings.py lo encuentre seguro.
+COPY .env .
+
 # Primero las dependencias: su capa queda en cache mientras el código cambie.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

@@ -1,12 +1,11 @@
 # Archivos que NO entran en la imagen de Docker.
-# .env queda fuera por seguridad: las credenciales se pasan en runtime
+# .env se incluye para que load_dotenv() funcione en el contenedor (usándose --env-file también).
 venv/
 .git/
 .gitignore
 .pytest_cache/
 __pycache__/
 *.pyc
-.env
 *.sqlite3
 Dockerfile
 README.md
