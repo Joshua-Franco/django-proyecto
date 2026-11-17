@@ -14,6 +14,7 @@ archivos en su disco.
 | Django | 6.1.3 | Framework web |
 | Django REST Framework | 3.18.3 | API REST (serializers, APIViews) |
 | djangorestframework-simplejwt | 5.5.1 | Autenticación JWT |
+| bcrypt | 5.0.0 | Hash de contraseñas |
 | django-storages | 1.14.6 (+ boto3 1.43) | Storage de media en AWS S3 |
 | PostgreSQL | 18.6 | Base de datos (vía psycopg 3.3.8) |
 | Pillow | 13.0.0 | Validación de imágenes (`ImageField`) |
@@ -222,10 +223,10 @@ python manage.py runserver
 | DELETE | `/tareas/<uuid>/eliminar/` | Eliminar tarea |
 | GET | `/cuentas/` | Lista de cuentas activas |
 | POST | `/cuentas/crear/` | Crear cuenta |
+| POST | `/cuentas/iniciar-sesion/` | Iniciar sesión con nombre, correo y contraseña (devuelve token JWT) |
 | GET | `/cuentas/<uuid>/obtener/` | Detalle de una cuenta |
 | PUT/PATCH | `/cuentas/<uuid>/` | Actualizar cuenta (requiere token JWT) |
 | DELETE | `/cuentas/<uuid>/eliminar/` | Desactivar cuenta (requiere token JWT) |
-| POST | `/cuentas/iniciar-sesion/` | Login (devuelve tokens JWT) |
 | POST | `/imagenes/crear/` | Subir imagen al bucket (multipart) |
 | GET | `/imagenes/` | Lista de imágenes con URLs del bucket |
 | GET | `/imagenes/<uuid>/` | Detalle de una imagen |
@@ -258,6 +259,12 @@ de DRF: *AllowAny*). Para las rutas protegidas añade el header:
 ```
 Authorization: Bearer <access_token>
 ```
+
+Las contraseñas nuevas se almacenan con `bcrypt`; nunca se devuelven en las
+respuestas. Por el límite de bcrypt, se aceptan contraseñas de hasta 72 bytes
+en UTF-8. El login recibe `nombre`, `correo_electronico` y `password`, y
+devuelve el token `access`. Los hashes PBKDF2 de Django anteriores se
+convierten a bcrypt al iniciar sesión correctamente.
 
 ## Notas de producción
 

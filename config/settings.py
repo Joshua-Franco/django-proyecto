@@ -12,6 +12,10 @@ from os import getenv
 from dotenv import load_dotenv
 import dj_database_url
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+}
+
 # Ruta raíz del proyecto (carpeta que contiene manage.py).
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -158,12 +162,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
-}
-
-# Vigencia de los tokens JWT.
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 # Configuración de correo: los correos se imprimen en la consola (desarrollo).

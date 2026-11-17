@@ -15,9 +15,18 @@ class Cuenta(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     nombre = models.CharField(max_length=100)
     correo_electronico = models.EmailField(unique=True)  # El correo debe ser único.
+    password = models.CharField(max_length=128, default='!', editable=False)
     activo = models.BooleanField(default=True)  # False = cuenta desactivada (borrado lógico).
     # Fecha de creación automática al guardar por primera vez.
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return self.activo
 
     class Meta:
         db_table = 'cuentas'  # Nombre propio de la tabla en la BD.
