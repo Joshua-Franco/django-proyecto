@@ -11,6 +11,7 @@ from pathlib import Path
 from os import getenv
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
@@ -22,15 +23,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Carga las variables de entorno del archivo `.env` (credenciales de la BD).
 load_dotenv(BASE_DIR / '.env')
 
-# Clave secreta de Django. En producción debe ir en una variable de entorno,
-# nunca hardcodeada. Actualmente es una clave de desarrollo insegura.
-SECRET_KEY = 'django-insecure-f9)ovj^u_e#uze!zs^hs+7p0pb2&vxzdgu5%5#6rugo$_&c^rk'
+# Production configuration is injected by Render; local development can use .env.
+DEBUG = getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+SECRET_KEY = getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured('Define SECRET_KEY en el entorno.')
 
-# True en desarrollo (muestra errores detallados). Debe ser False en producción.
-DEBUG = True
-
-# Dominios permitidos. Vacío solo sirve para `localhost`/127.0.0.1 en desarrollo.
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in getenv('ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
+render_hostname = getenv('RENDER_EXTERNAL_HOSTNAME')
+if render_hostname:
+    ALLOWED_HOSTS.append(render_hostname)
+if DEBUG:
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 
 # Apps de Django + apps propias del proyecto + DRF + simplejwt.
 INSTALLED_APPS = [
@@ -83,11 +91,11 @@ TEMPLATES = [
 # Aplicación WSGI para despliegue con servidores como Gunicorn.
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Base de datos PostgreSQL. Las credenciales se leen del archivo `.env`
-# mediante variables de entorno (HOST, NAME, USER, PASSWORD, PORT).
-# Se quitan las comillas que puedan venir en el .env (python-dotenv a veces
-# las incluye y dj_database_url no las espera).
+# Base de datos PostgreSQL: DATABASE_URL puede venir del entorno o del .env local.
+# Se quitan comillas que python-dotenv pueda conservar.
 _DATABASE_URL = getenv("DATABASE_URL", "").strip('"').strip("'")
+if not _DATABASE_URL:
+    raise ImproperlyConfigured('Define DATABASE_URL en el entorno.')
 
 DATABASES = {
     "default": dj_database_url.parse(

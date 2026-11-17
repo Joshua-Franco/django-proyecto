@@ -1,5 +1,5 @@
 # Dockerfile del proyecto django-proyecto.
-# Server de desarrollo (runserver) sobre la imagen oficial de Python 3.14.
+# Servidor Django sobre la imagen oficial de Python 3.14.
 # psycopg[binary] y Pillow traen wheels de Linux: no hace falta compilar nada.
 FROM python:3.14-slim
 
@@ -14,9 +14,6 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Copia el .env para que load_dotenv() en settings.py lo encuentre seguro.
-COPY .env .
-
 # Primero las dependencias: su capa queda en cache mientras el código cambie.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -29,7 +26,7 @@ EXPOSE 8000
 
 # Health contra la ruta raíz de la app (health/views.py: GET / → health-check).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request, sys; urllib.request.urlopen('http://127.0.0.1:8000/') or sys.exit(1)" || exit 1
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/', timeout=4)" || exit 1
 
-# Migraciones automáticas al arrancar y server escuchando en 0.0.0.0.
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# Migraciones automáticas al arrancar y servidor de producción en el puerto de Render.
+CMD ["sh", "-c", "python manage.py migrate && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --access-logfile - --error-logfile -"]

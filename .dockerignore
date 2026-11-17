@@ -1,5 +1,6 @@
 # Archivos que NO entran en la imagen de Docker.
-# .env se incluye para que load_dotenv() funcione en el contenedor (usándose --env-file también).
+# Nunca incluir secretos locales en la imagen; Render inyecta variables al ejecutar.
+.env
 venv/
 .git/
 .gitignore

@@ -33,11 +33,9 @@ django-proyecto/
 ├── images/          # Subida + listado + detalle de imágenes (imagenes/)
 ├── videos/          # Subida + listado + detalle de videos (videos/)
 ├── manage.py
-├── Dockerfile       # Imagen de la app (python:3.14-slim + runserver)
+├── Dockerfile       # Imagen de la app (python:3.14-slim + Gunicorn)
 ├── docker-compose.yml  # App Django + PostgreSQL en Docker
 ├── .dockerignore
-├── pytest.ini       # Configuración de pytest
-├── conftest.py      # Fixtures compartidas de pytest
 └── requirements.txt
 ```
 
@@ -70,11 +68,10 @@ pip install -r requirements.txt
 Crea un archivo `.env` junto a `manage.py` (se ignora en git):
 
 ```env
-HOST=localhost
-NAME=database
-USER=postgres
-PASSWORD=tu_contraseña
-PORT=5432
+DATABASE_URL=postgresql://usuario:contraseña@host:5432/base_de_datos
+SECRET_KEY=una-clave-secreta-larga-y-aleatoria
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 
 # --- AWS S3 (única fuente de media) ---
 AWS_ACCESS_KEY_ID=...                # access key de IAM
@@ -83,8 +80,11 @@ AWS_STORAGE_BUCKET_NAME=django-proyecto
 AWS_S3_REGION_NAME=us-east-2
 ```
 
-El `.env` se carga automáticamente con `python-dotenv`. **Las credenciales
-de AWS nunca van en el código, el README, el Dockerfile o el compose.**
+El `.env` se carga automáticamente con `python-dotenv` para desarrollo local.
+En Render, configura esas variables en **Dashboard → Environment**; no subas
+ni copies `.env` a la imagen. Usa `DEBUG=False` en producción. Render añade
+`RENDER_EXTERNAL_HOSTNAME` y Django lo permite automáticamente.
+**Las credenciales nunca van en el código, el README o la imagen.**
 
 ### Base de datos
 
@@ -97,6 +97,11 @@ CREATE DATABASE database;
 ```bash
 python manage.py migrate
 ```
+
+> Histórico: `videos/0002` y `videos/0003` eran migraciones de datos
+> cuando el media vivía en `assets/` (carpeta eliminada). En una BD nueva
+> no crean registros (la carpeta no existe); los registros se crean ahora
+> con los endpoints de subida. No edites migraciones ya aplicadas.
 
 ## Media: el server solo obtiene y sube a AWS S3
 
@@ -136,7 +141,6 @@ python manage.py migrate
      }]
    }
    ```
-
 3. **Seed opcional** de los archivos históricos con AWS CLI:
 
    ```bash
@@ -145,7 +149,6 @@ python manage.py migrate
    aws s3 cp --recursive --content-type "video/mp4" \
        ./mi-carpeta-videos / s3://django-proyecto/videos/
    ```
-
 4. Poner la clave rotada en `.env` y arrancar (`runserver` o Docker).
 
 ## Subir media con Django
@@ -184,7 +187,7 @@ PostgreSQL propio en red interna.
 
 | Componente | Contenido |
 |---|---|
-| `Dockerfile` | Imagen `python:3.14-slim`, `tzdata` (America/Lima), HEALTHCHECK de `/`, CMD: `migrate` + `runserver 0.0.0.0:8000` |
+| `Dockerfile` | Imagen `python:3.14-slim`, `tzdata` (America/Lima), HEALTHCHECK de `/`, CMD: `migrate` + Gunicorn en `$PORT` |
 | `docker-compose.yml` | `web` (app) + `db` (`postgres:18-alpine`, volumen persistente, healthcheck `pg_isready`) |
 | `.dockerignore` | Excluye `venv/`, `.git/`, `.env` (credenciales jamás en la imagen) |
 
@@ -223,10 +226,10 @@ python manage.py runserver
 | DELETE | `/tareas/<uuid>/eliminar/` | Eliminar tarea |
 | GET | `/cuentas/` | Lista de cuentas activas |
 | POST | `/cuentas/crear/` | Crear cuenta |
-| POST | `/cuentas/iniciar-sesion/` | Iniciar sesión con nombre, correo y contraseña (devuelve token JWT) |
 | GET | `/cuentas/<uuid>/obtener/` | Detalle de una cuenta |
 | PUT/PATCH | `/cuentas/<uuid>/` | Actualizar cuenta (requiere token JWT) |
 | DELETE | `/cuentas/<uuid>/eliminar/` | Desactivar cuenta (requiere token JWT) |
+| POST | `/cuentas/iniciar-sesion/` | Login (devuelve tokens JWT) |
 | POST | `/imagenes/crear/` | Subir imagen al bucket (multipart) |
 | GET | `/imagenes/` | Lista de imágenes con URLs del bucket |
 | GET | `/imagenes/<uuid>/` | Detalle de una imagen |
@@ -259,12 +262,6 @@ de DRF: *AllowAny*). Para las rutas protegidas añade el header:
 ```
 Authorization: Bearer <access_token>
 ```
-
-Las contraseñas nuevas se almacenan con `bcrypt`; nunca se devuelven en las
-respuestas. Por el límite de bcrypt, se aceptan contraseñas de hasta 72 bytes
-en UTF-8. El login recibe `nombre`, `correo_electronico` y `password`, y
-devuelve el token `access`. Los hashes PBKDF2 de Django anteriores se
-convierten a bcrypt al iniciar sesión correctamente.
 
 ## Notas de producción
 
